@@ -68,11 +68,11 @@ require_once $root_path . File::pathFixer('system/autoload/PEAR2/Autoload.php');
 include $root_path . File::pathFixer('system/autoload/Hookers.php');
 
 if($db_password != null && ($db_pass == null || empty($db_pass))){
-    // compability for old version
+    // compatibility for old version
     $db_pass = $db_password;
 }
 if($db_pass != null){
-    // compability for old version
+    // compatibility for old version
     $db_password = $db_pass;
 }
 ORM::configure("mysql:host=$db_host;dbname=$db_name");
@@ -94,16 +94,37 @@ if (file_exists($UPLOAD_PATH . DIRECTORY_SEPARATOR . "notifications.json")) {
 }
 $_notifmsg_default = json_decode(file_get_contents($UPLOAD_PATH . DIRECTORY_SEPARATOR . 'notifications.default.json'), true);
 
-//register all plugin
-foreach (glob(File::pathFixer($PLUGIN_PATH . DIRECTORY_SEPARATOR . '*.php')) as $filename) {
-    try {
-        include $filename;
-    } catch (Throwable $e) {
-        //ignore plugin error
-    } catch (Exception $e) {
-        //ignore plugin error
+// ---------------------------------- Amolood ----
+// Load and decode the plugins.json file
+$plugins_json_path = File::pathFixer($PLUGIN_PATH . DIRECTORY_SEPARATOR . 'plugins.json');
+$registered_plugins = [];
+
+if (file_exists($plugins_json_path)) {
+    $registered_plugins = json_decode(file_get_contents($plugins_json_path), true);
+}
+
+// Filter only active plugins
+$active_plugins = array_filter($registered_plugins, function($plugin) {
+    return isset($plugin['status']) && $plugin['status'] === 'active';
+});
+
+// Register all active plugins
+foreach ($active_plugins as $plugin) {
+    $pluginDir = File::pathFixer($PLUGIN_PATH . DIRECTORY_SEPARATOR . $plugin['dir']);
+
+    if (is_dir($pluginDir)) {
+        // Loop through each PHP file in the active plugin's directory
+        foreach (glob(File::pathFixer($pluginDir . DIRECTORY_SEPARATOR . '*.php')) as $filename) {
+            try {
+                include $filename;
+            } catch (Throwable | Exception $e) {
+                // Ignore plugin error
+            }
+        }
     }
 }
+
+// ---------------------------------- Amolood ----
 
 $result = ORM::for_table('tbl_appconfig')->find_many();
 foreach ($result as $value) {
@@ -120,7 +141,7 @@ date_default_timezone_set($config['timezone']);
 
 if ((!empty($radius_user) && $config['radius_enable']) || _post('radius_enable')) {
     if(!empty($radius_password)){
-        // compability for old version
+        // compatibility for an old version
         $radius_pass = $radius_password;
     }
     ORM::configure("mysql:host=$radius_host;dbname=$radius_name", null, 'radius');
