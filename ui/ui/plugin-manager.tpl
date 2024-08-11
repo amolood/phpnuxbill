@@ -2,7 +2,7 @@
 
 {if empty($_c['github_token'])}
     <p class="help-block">To download from private/paid repository, <a href="{$_url}settings/app#Github_Authentication">Set
-            your Github Authentication first</a></p>
+            your GitHub Authentication first</a></p>
 {/if}
 
 <form method="post" enctype="multipart/form-data"
@@ -37,6 +37,74 @@
     </div>
 </form>
 
+{*
+    InstalledPlugin
+*}
+<div class="panel panel-primary panel-hovered">
+    <div class="panel-heading">
+        {Lang::T('Installed Plugin')}
+    </div>
+    <div class="panel-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                <tr>
+                    <th width="22%" class="text-center">Name</th>
+                    <th width="55%" class="text-center">Description</th>
+                    <th width="18%" class="text-center">Author</th>
+                    <th width="5%" class="text-center">latest_version</th>
+                    <th class="text-center">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                {foreach $InstalledPlugin as $plugin}
+                    <tr>
+                        <td><a href="{$plugin.plugin_url|escape:'html'}">{$plugin.name|escape:'html'}</a> - <span class="badge badge-primary">{$plugin.version}</span></td>
+                        <td style="white-space: normal; word-wrap: break-word;">{$plugin.description|escape:'html'}</td>
+                        <td>
+                            <a href="{$plugin.author_url|escape:'html'}">{$plugin.author|escape:'html'}</a>
+                        </td>
+                        <td>{$plugin.latest_version|escape:'html'}</td>
+                        <td>
+                            <a href="{$_url}pluginmanager/delete/{$plugin.dir|escape:'url'}"
+                               onclick="return confirm('{Lang::T('Delete')}?')" class="btn btn-danger btn-xs">
+                                <i class="glyphicon glyphicon-trash"></i> {Lang::T('Delete')}
+                            </a>
+
+                            {if $plugin.status == 'active'}
+                                <a href="{$_url}pluginmanager/disable/{$plugin.dir|escape:'url'}"
+                                   onclick="return confirm('{Lang::T('Disable')}?')" class="btn btn-warning btn-xs">
+                                    <i class="glyphicon glyphicon-ban-circle"></i> {Lang::T('Disable')}
+                                </a>
+                            {/if}
+
+                            {if $plugin.status == 'inactive'}
+                                <a href="{$_url}pluginmanager/enable/{$plugin.dir|escape:'url'}"
+                                   onclick="return confirm('{Lang::T('Enable')}?')" class="btn btn-success btn-xs">
+                                    <i class="glyphicon glyphicon-ok"></i> {Lang::T('Enable')}
+                                </a>
+                            {/if}
+
+                            {if $plugin.latest_version gt $plugin.version}
+                                <a href="{$_url}pluginmanager/update/{$plugin.dir|escape:'url'}"
+                                   onclick="return confirm('{Lang::T('Update')}?')" class="btn btn-warning btn-xs">
+                                    <i class="glyphicon glyphicon-refresh"></i> {Lang::T('Update')}
+                                </a>
+                            {/if}
+                        </td>
+                    </tr>
+                {/foreach}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+{*
+    InstalledPaymentGateway
+*}
+
 <div>
     <!-- Nav tabs -->
     <ul class="nav nav-tabs" role="tablist">
@@ -47,6 +115,7 @@
         <li role="presentation"><a href="#device" aria-controls="device" role="tab" data-toggle="tab">Devices</a>
         </li>
     </ul>
+
     <br>
     <!-- Tab panes -->
     <div class="tab-content">
