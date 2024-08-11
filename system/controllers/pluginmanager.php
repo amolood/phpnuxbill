@@ -37,6 +37,70 @@ switch ($action) {
         if (file_exists($cache)) unlink($cache);
         r2(U . "pluginmanager", 's', 'Refresh success');
         break;
+    case 'enable':
+        // Get the plugin directory from the route
+        $plugin_dir = $routes[2];
+        $plugins_json_path = File::pathFixer($PLUGIN_PATH . DIRECTORY_SEPARATOR . 'plugins.json');
+        $existing_plugins = [];
+
+        // Load the existing plugins from plugins.json
+        if (file_exists($plugins_json_path)) {
+            $existing_plugins = json_decode(file_get_contents($plugins_json_path), true);
+        }
+
+        // Update the status of the plugin to 'active'
+        $plugin_found = false;
+        foreach ($existing_plugins as $key => $existing_plugin) {
+            if ($existing_plugin['dir'] === $plugin_dir) {
+                $existing_plugins[$key]['status'] = 'active';
+                $plugin_found = true;
+                break;
+            }
+        }
+
+        // Save the updated plugins back to plugins.json
+        if ($plugin_found) {
+            file_put_contents($plugins_json_path, json_encode($existing_plugins, JSON_PRETTY_PRINT));
+            r2(U . "pluginmanager", 's', 'Plugin enabled successfully');
+        } else {
+            r2(U . "pluginmanager", 'e', 'Plugin not found');
+        }
+        break;
+    case 'disable':
+        // Get the plugin directory from the route
+        $plugin_dir = $routes[2];
+        $plugins_json_path = File::pathFixer($PLUGIN_PATH . DIRECTORY_SEPARATOR . 'plugins.json');
+        $existing_plugins = [];
+
+        // Load the existing plugins from plugins.json
+        if (file_exists($plugins_json_path)) {
+            $existing_plugins = json_decode(file_get_contents($plugins_json_path), true);
+        }
+
+        // Update the status of the plugin to 'inactive'
+        $plugin_found = false;
+        foreach ($existing_plugins as $key => $existing_plugin) {
+            if ($existing_plugin['dir'] === $plugin_dir) {
+                $existing_plugins[$key]['status'] = 'inactive';
+                $plugin_found = true;
+                break;
+            }
+        }
+
+        // Save the updated plugins back to plugins.json
+        if ($plugin_found) {
+            file_put_contents($plugins_json_path, json_encode($existing_plugins, JSON_PRETTY_PRINT));
+            r2(U . "pluginmanager", 's', 'Plugin disabled successfully');
+        } else {
+            r2(U . "pluginmanager", 'e', 'Plugin not found');
+        }
+        break;
+    case 'update':
+        // update the plugin
+
+
+        // update the plugin
+        break;
     case 'dlinstall':
         if ($_app_stage == 'demo') {
             r2(U . "pluginmanager", 'e', 'Demo Mode cannot install as it Security risk');
@@ -121,7 +185,7 @@ switch ($action) {
             $zip->extractTo($cache);
             $zip->close();
             $folder = $cache . DIRECTORY_SEPARATOR . $plugin . '-main' . DIRECTORY_SEPARATOR;
-            if(!file_exists($folder)) {
+            if (!file_exists($folder)) {
                 $folder = $cache . DIRECTORY_SEPARATOR . $plugin . '-master' . DIRECTORY_SEPARATOR;
             }
             $success = 0;
@@ -161,55 +225,41 @@ switch ($action) {
         }
         break;
     case 'delete':
-        if (!is_writeable($CACHE_PATH)) {
-            r2(U . "pluginmanager", 'e', 'Folder cache/ is not writable');
-        }
-        if (!is_writeable($PLUGIN_PATH)) {
-            r2(U . "pluginmanager", 'e', 'Folder plugin/ is not writable');
-        }
-        set_time_limit(-1);
-        $tipe = $routes['2'];
-        $plugin = $routes['3'];
-        $file = $CACHE_PATH . DIRECTORY_SEPARATOR . $plugin . '.zip';
-        if (file_exists($file)) unlink($file);
-        if ($tipe == 'plugin') {
-            foreach ($json['plugins'] as $plg) {
-                if ($plg['id'] == $plugin) {
-                    if (!empty($config['github_token']) && !empty($config['github_username'])) {
-                        $plg['github'] = str_replace('https://github.com', 'https://' . $config['github_username'] . ':' . $config['github_token'] . '@github.com', $plg['github']);
-                    }
-                    $fp = fopen($file, 'w+');
-                    $ch = curl_init($plg['github'] . '/archive/refs/heads/master.zip');
-                    curl_setopt($ch, CURLOPT_POST, 0);
-                    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 15);
-                    curl_setopt($ch, CURLOPT_TIMEOUT, 15);
-                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-                    curl_setopt($ch, CURLOPT_FILE, $fp);
-                    curl_exec($ch);
-                    curl_close($ch);
-                    fclose($fp);
+        // function to delete plugin from the plugins.json and delete the plugin folder
+        $plugin_dir = $routes[2];
+        $plugins_json_path = File::pathFixer($PLUGIN_PATH . DIRECTORY_SEPARATOR . 'plugins.json');
+        $existing_plugins = [];
 
-                    $zip = new ZipArchive();
-                    $zip->open($file);
-                    $zip->extractTo($CACHE_PATH);
-                    $zip->close();
-                    $folder = $CACHE_PATH . File::pathFixer('/' . $plugin . '-main/');
-                    if (!file_exists($folder)) {
-                        $folder = $CACHE_PATH . File::pathFixer('/' . $plugin . '-master/');
-                    }
-                    if (!file_exists($folder)) {
-                        r2(U . "pluginmanager", 'e', 'Extracted Folder is unknown');
-                    }
-                    scanAndRemovePath($folder, $PLUGIN_PATH . DIRECTORY_SEPARATOR);
-                    File::deleteFolder($folder);
-                    unlink($file);
-                    r2(U . "pluginmanager", 's', 'Plugin ' . $plugin . ' has been deleted');
-                    break;
-                }
-            }
-            break;
+        // Load the existing plugins from plugins.json
+        if (file_exists($plugins_json_path)) {
+            $existing_plugins = json_decode(file_get_contents($plugins_json_path), true);
         }
+
+        // Remove the plugin from the plugins.json
+        $plugin_found = false;
+        foreach ($existing_plugins as $key => $existing_plugin) {
+            if ($existing_plugin['dir'] === $plugin_dir) {
+                unset($existing_plugins[$key]);
+                $plugin_found = true;
+                break;
+            }
+        }
+
+        // Save the updated plugins back to plugins.json
+        if ($plugin_found) {
+            file_put_contents($plugins_json_path, json_encode($existing_plugins, JSON_PRETTY_PRINT));
+        } else {
+            r2(U . "pluginmanager", 'e', 'Plugin not found');
+        }
+
+        // Delete the plugin folder
+        $plugin_folder = File::pathFixer($PLUGIN_PATH . DIRECTORY_SEPARATOR . $plugin_dir);
+        if (file_exists($plugin_folder)) {
+            scanAndRemovePath($plugin_folder, $plugin_folder);
+        }
+
+        r2(U . "pluginmanager", 's', 'Plugin deleted successfully');
+
         break;
     case 'install':
         if (!is_writeable($CACHE_PATH)) {
@@ -341,11 +391,57 @@ switch ($action) {
         } else {
             $zipExt = false;
         }
+        $InstalledPlugin = [];
+        // list all installed plugin
+        $InstalledPlugin = get_plugin_files($PLUGIN_PATH);
+        $ui->assign('InstalledPlugin', $InstalledPlugin);
         $ui->assign('zipExt', $zipExt);
         $ui->assign('plugins', $json['plugins']);
         $ui->assign('pgs', $json['payment_gateway']);
         $ui->assign('dvcs', $json['devices']);
         $ui->display('plugin-manager.tpl');
+}
+
+function get_plugin_files($directory)
+{
+    $plugin_files = [];
+
+    // Load existing plugins.json from the main directory
+    $plugins_json_path = "$directory/plugins.json";
+    $existing_plugins = [];
+
+    if (file_exists($plugins_json_path)) {
+        $existing_plugins = json_decode(file_get_contents($plugins_json_path), true);
+    }
+
+    // Iterate over the plugins listed in plugins.json
+    foreach ($existing_plugins as $existing_plugin) {
+        // Only process plugins with status 'active'
+        if (isset($existing_plugin['status'])) {
+            $dir = $existing_plugin['dir'];
+            $plugin_dir = "$directory/$dir";
+
+            // Check if the directory exists and contains a register.json file
+            if (is_dir($plugin_dir) && file_exists("$plugin_dir/register.json")) {
+                // Add the plugin to the list based on the information from register.json
+                $plugin_files[] = [
+                    'dir' => $dir,
+                    'name' => isset($existing_plugin['name']) ? $existing_plugin['name'] : 'Unknown Plugin',
+                    'version' => isset($existing_plugin['version']) ? $existing_plugin['version'] : 'Unknown',
+                    'author' => isset($existing_plugin['author']) ? $existing_plugin['author'] : 'Unknown',
+                    'author_url' => isset($existing_plugin['authorUrl']) ? $existing_plugin['authorUrl'] : 'Unknown',
+                    'description' => isset($existing_plugin['description']) ? $existing_plugin['description'] : 'No description',
+                    'plugin_url' => isset($existing_plugin['pluginUrl']) ? $existing_plugin['pluginUrl'] : 'No URI',
+                    'last_update' => isset($existing_plugin['lastUpdate']) ? $existing_plugin['lastUpdate'] : 'Unknown',
+                    'latest_version' => isset($existing_plugin['latest_version']) ? $existing_plugin['latest_version'] : 'Unknown',
+                    'status' => $existing_plugin['status'],  // This will be 'active'
+                ];
+            }
+        }
+    }
+
+    // Return the list of active plugins as an array
+    return $plugin_files;
 }
 
 
