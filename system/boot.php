@@ -35,6 +35,18 @@ if (!empty($config['theme']) && $config['theme'] != 'default') {
         'default' => File::pathFixer($UI_PATH . '/ui/')
     ]);
 }
+
+// set my plugin path for template and each plugin path has its own ui folder which is 'template' folder / amolood
+$pluginPath = $PLUGIN_PATH; // Path to the plugins directory
+$pluginDirs = glob($pluginPath . '/*', GLOB_ONLYDIR); // Get all plugin directories
+
+foreach ($pluginDirs as $pluginDir) {
+    $pluginName = basename($pluginDir); // Extract the plugin folder name
+    $templateDir = $pluginDir . File::pathFixer('/templates/'); // Path to the templates directory for the plugin
+    $ui->addTemplateDir($templateDir, $pluginName); // Add the template directory with the plugin name as the namespace
+}
+// amolood
+
 $ui->assign('_theme', $_theme);
 $ui->addTemplateDir($PAYMENTGATEWAY_PATH . File::pathFixer('/ui/'), 'pg');
 $ui->addTemplateDir($PLUGIN_PATH . File::pathFixer('/ui/'), 'plugin');
